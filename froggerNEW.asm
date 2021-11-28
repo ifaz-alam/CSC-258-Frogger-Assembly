@@ -90,20 +90,59 @@ main:
 	# $a2 -> # of rows (vertical distance)
 	# $a3 -> pixel offset value
 	
-	# Let's draw a green rectangle for the safe zone
-	
-	# Setting our variables based on the specifications above
-	li $a0, 0x00ff00
-	li $a1, 30
-	li $a2, 4
-	li $a3, 32
-	
 	# Register t1 is a counter variable for the current column
 	# Register t2 is a counter variable for the current row
 	li $t1, 0
 	li $t2, 1
 	
+	# Let's draw a green rectangle for the safe zone
+	# Setting our variables based on the specifications above
+	li $a0, 0x006400
+	li $a1, 32
+	li $a2, 8
+	li $a3, 0
+	
 	# Shift Offset
 	add $t0, $t0, $a3
 	
+	jal DRAW_RECT
+	
+	# Now let's draw the blue water
+	li $a0, 0x87CEEB
+	li $a1, 32
+	li $a2, 8
+	li $a3, 1024
+	
+	# Shift offset
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Now let's draw the middle safe zone
+	li $a0, 0xFFE5B4
+	li $a1, 32
+	li $a2, 4
+	li $a3, 2048
+	
+	# Shift offset
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Now let's draw the road
+	li $a0, 0x808080
+	li $a1, 32
+	li $a2, 8
+	li $a3, 2560
+	
+	# Shift offset
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Now let's draw the primary safe zone
+	li $a0, 0x006400
+	li $a1, 32
+	li $a2, 4
+	li $a3, 3584
+	
+	# Shift offset
+	add $t0, $t0, $a3
 	jal DRAW_RECT
