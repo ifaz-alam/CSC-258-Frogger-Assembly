@@ -6,6 +6,8 @@
 # - Base Address for Display: 0x10008000 ($gp)
 #
 .data
+	x: .word 0
+	y: .word 0
 displayAddress: .word 0x10008000
 .text
 lw $t0, displayAddress # $t0 stores the base address for display
