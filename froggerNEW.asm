@@ -12,6 +12,10 @@ lw $t0, displayAddress # $t0 stores the base address for display
 
 j main
 
+WRAP_AROUND:
+	addi $t0, $t0, -128
+	j DRAW_RECT
+	
 DRAW_RECT:
 	# Increment the column position (initially from 0 if new column or brand new call), and draw a pixel
 	addi $t1, $t1, 1
@@ -20,8 +24,22 @@ DRAW_RECT:
 	# Check if we're done drawing the rectangle
 	beq $t1, $a1, IS_LAST_PIXEL
 	
+	
+	
 	# Shift the displayAddress pivot
 	addi $t0, $t0, 4
+	
+	
+	# WARP AROUND CHECK
+	# t6 = t0
+	add $t6, $zero, $t0
+	
+	# check whether t6 % 128 == 0
+	li $t7 128
+	div $t6, $t7
+	mfhi $t6
+	
+	beq $t6, $zero, WRAP_AROUND 
 	
 	j DRAW_RECT
 
@@ -47,7 +65,6 @@ NEW_ROW:
 	mul $t3, $t3, $t2
 	
 	add $t0, $t0, $t3
-	
 	
 	# Increment the row counter
 	addi $t2, $t2, 1
@@ -77,9 +94,9 @@ main:
 	
 	# Setting our variables based on the specifications above
 	li $a0, 0x00ff00
-	li $a1, 1
-	li $a2, 1
-	li $a3, 4
+	li $a1, 30
+	li $a2, 4
+	li $a3, 32
 	
 	# Register t1 is a counter variable for the current column
 	# Register t2 is a counter variable for the current row
