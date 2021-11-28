@@ -48,27 +48,6 @@ DRAW_LAST_PIXEL: sw $a0, 0($t0)
 		 lw $t0, displayAddress # reset the display address anchor
 		 jr $ra # jump back
 
-# DRAW THE REMAINING PIXEL BEFORE WRAPPING AROUND
-WRAP_AROUND: sw $a0, 0($t0)
-	addi $t0, $t0, -128
-	jr $ra # jump back
-	
-NEW_ROW: 
-	# reset column traversed count
-	li $t4, 0
-	
-	beq $a2, $zero, END_DRAW_RECT
-	
-	# reset the column offset	
-	lw $t0, displayAddress
-	li $t1 128
-	add $t0, $t0, $a3
-	add $t0, $t0, $t1
-	
-	# increment row counter by 1
-	addi $t5, $t5, 1
-	
-	j DRAW_RECT_WHILE
 
 DRAW_RECT:
 	# t4 is a counter variable counting the # of columns for a fixed row
@@ -84,6 +63,9 @@ DRAW_RECT:
 	jr $ra
 	
 DRAW_RECT_WHILE:
+	# if we got all rows end the draw
+	beq $t5, $a2, END_DRAW_RECT
+	
 	# draw pixel of colour $a0, then move to the right
 	sw $a0, 0($t0)
 	addi $t0, $t0, 4
@@ -102,9 +84,6 @@ DRAW_RECT_WHILE:
 	# beq $t7, $zero, WRAP_AROUND
 	#beq $t7, $zero, WRAP_AROUND
 	
-	# if we got all rows end the draw
-	beq $t5, $a2, END_DRAW_RECT
-	
 	# t4 += 1
 	addi $t4, $t4, 1
 	
@@ -117,13 +96,35 @@ END_DRAW_RECT:
 	li $t4, 0 # reset the counter
 	lw $t0, displayAddress # reset the display address anchor
 	
+
+# DRAW THE REMAINING PIXEL BEFORE WRAPPING AROUND
+WRAP_AROUND: sw $a0, 0($t0)
+	addi $t0, $t0, -128
+	jr $ra # jump back
 	
+NEW_ROW: 
+	# reset column traversed count
+	li $t4, 0
+	
+	# reset the column offset	
+	lw $t0, displayAddress
+	li $t1 128
+	add $t0, $t0, $a3
+	add $t0, $t0, $t1
+	
+	# increment row counter by 1
+	addi $t5, $t5, 1
+	
+	beq $t5, $a3, END_DRAW_RECT
+	
+	jal DRAW_RECT_WHILE
+		
 main:
 	# We want a draw rectangle function 
 	# Its paramters will be $a0 -> colour code, $a1 -> num column, $a2 -> num row, $a3 -> offset
 	li $a0, 0x00ff00 # store the green colour code
-	li $a1, 2
-	li $a2, 3
+	li $a1, 4
+	li $a2, 2
 	li $a3, 28
 	# set offset of displayAddress
 	add $t0, $t0, $a3
