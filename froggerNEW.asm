@@ -6,8 +6,9 @@
 # - Base Address for Display: 0x10008000 ($gp)
 #
 .data
-	x: .word 0
-	y: .word 0
+	x: .word 14
+	y: .word 20
+	vehicle_row: .space 256
 displayAddress: .word 0x10008000
 .text
 lw $t0, displayAddress # $t0 stores the base address for display
@@ -25,8 +26,6 @@ DRAW_RECT:
 	
 	# Check if we're done drawing the rectangle
 	beq $t1, $a1, IS_LAST_PIXEL
-	
-	
 	
 	# Shift the displayAddress pivot
 	addi $t0, $t0, 4
@@ -112,8 +111,8 @@ main:
 	# Now let's draw the blue water
 	li $a0, 0x87CEEB
 	li $a1, 32
-	li $a2, 8
-	li $a3, 1024
+	li $a2, 9
+	li $a3, 896
 	
 	# Shift offset
 	add $t0, $t0, $a3
@@ -148,3 +147,114 @@ main:
 	# Shift offset
 	add $t0, $t0, $a3
 	jal DRAW_RECT
+	
+	# draw frog
+	# offset is 4x + y * 128
+	# x = 15, y = 29
+	# offset is 3764
+	li $a0, 0x90EE90
+	li $a1, 3
+	li $a2, 2
+	li $a3, 3896
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Draw logs first row
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	li $a3, 896
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	li $a3, 956
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Draw logs second row
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	li $a3, 1300
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	li $a3, 1356
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Draw logs third row
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	li $a3, 1664
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	li $a3, 1724
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	
+	# Each pixel is 4 bytes
+	# Vehicle row has 32 * 2 pixels so the space needed is 32 * 2 * 4 = 256 bytes
+	# Draw Cars First Row
+	li $a0, 0xFF0000
+	li $a1, 4
+	li $a2, 2
+	li $a3, 2560
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	li $a0, 0xFF0000
+	li $a1, 4
+	li $a2, 2
+	li $a3, 2600
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Draw cars second row
+	li $a0, 0xFF0000
+	li $a1, 4
+	li $a2, 2
+	li $a3, 2980
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	li $a0, 0xFF0000
+	li $a1, 4
+	li $a2, 2
+	li $a3, 3024
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Draw cars third row
+	li $a0, 0xFF0000
+	li $a1, 4
+	li $a2, 2
+	li $a3, 3328
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	li $a0, 0xFF0000
+	li $a1, 4
+	li $a2, 2
+	li $a3, 3388
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+
+	li $v0, 32
+	li $a0, 17
+	syscall
+	j main
+
