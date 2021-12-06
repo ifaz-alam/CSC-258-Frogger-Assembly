@@ -137,19 +137,19 @@ keyboard_input:
 	jr $ra
 	
 respond_to_a:
-	addi $t4, $t4, -8
+	addi $t4, $t4, -4
 	jr $ra
 
 respond_to_d:
-	addi $t4, $t4, 8
+	addi $t4, $t4, 4
 	jr $ra
 	
 respond_to_w:
-	addi $t4, $t4, -256
+	addi $t4, $t4, -128
 	jr $ra
 	
 respond_to_s:
-	addi $t4, $t4, 256
+	addi $t4, $t4, 128
 	jr $ra
 
 draw_end_zone:
@@ -275,6 +275,7 @@ wrap_car_r2:
 	jr $ra
 
 # draw cars on row 3
+
 draw_car_row_3:
 	# stack store $rs value from main
 	addi $sp, $sp, -4
@@ -309,11 +310,8 @@ draw_car_row_3:
 	lw $ra, 0($sp)
 	addi $sp, $sp, 4
 	
-	# reset the counter
-	sw $zero, cars_row_3_timer
-	
 	jr $ra
-	
+			
 check_wrap_car_r3:
 	#check to see if we need to wrap around. let t6 = a3 and check whether t6 % 124 == 0
 	add $t6, $zero, $a3
@@ -430,27 +428,7 @@ main:
 	jal draw_car_row_2
 	
 	# Draw cars third row
-	
-	# Save the value of $t8 onto the stack
-	addi $sp, $sp, -4
-	sw $t8, 0($sp)
-
-	# We're going to let t8 = car_row_3_timer[0]
-	# Then we'll increment car_row_3_timer[0] and perform a check
-	lw $t8, cars_row_3_timer($zero)
-	addi $t8, $t8, 1
-	
-	 	 	
-	beq $t8, 10, draw_car_row_3
-	
-	sw $t8, cars_row_3_timer($zero)
-	
-	
-	# restore the $t8 from the stack (pop)
-	lw $t8, 0($sp)
-	addi $sp, $sp, 4
-	
-	#jal draw_car_row_3
+	jal draw_car_row_3
 	
 			
 	# draw frog
