@@ -56,36 +56,39 @@ DRAW_RECT:
 	# t5 is a counter variable counting the # of rows traversed
 	li $t5, 0
 	
-	beq $a1, $zero, END_DRAW_RECT
-	beq $a2, $zero, END_DRAW_RECT
+	li $t1, 0
 	
 	jal DRAW_RECT_WHILE
 	jr $ra
 	
 DRAW_RECT_WHILE:
 	# if we got all rows end the draw
-	beq $t5, $a2, END_DRAW_RECT
+	beq $t1, 4, END_DRAW_RECT
+	
+	#beq $t5, $a2, END_DRAW_RECT
+	
+	# t4 += 1
+	addi $t4, $t4, 1
 	
 	# draw pixel of colour $a0, then move to the right
 	sw $a0, 0($t0)
 	addi $t0, $t0, 4
+	addi $t1, $t1, 1
 	
 	# Store t6 = a0 + 4
-	addi $t6, $a0, 4
+	# addi $t6, $a0, 4
 	
 	# Calcuate $t6 modulo 128, which is stored in register $hi
-	li $t7 128
-	#div $t6, $t7
+	# li $t7 128
+	# div $t6, $t7
 	
 	# if $t0 is an edge pixel, wrap around but before you do that add a pixel.
-	#mfhi $t7
+	# mfhi $t7
 	
-	beq $t0, $t7, WRAP_AROUND
+	# beq $t0, $t7, WRAP_AROUND
 	# beq $t7, $zero, WRAP_AROUND
-	#beq $t7, $zero, WRAP_AROUND
+	# beq $t7, $zero, WRAP_AROUND
 	
-	# t4 += 1
-	addi $t4, $t4, 1
 	
 	# if t4 = $a1: we go to a new row and recall the draw function (Since we have got all the columns for this row)
 	beq $t4, $a1, NEW_ROW
@@ -102,6 +105,8 @@ WRAP_AROUND: sw $a0, 0($t0)
 	addi $t0, $t0, -128
 	jr $ra # jump back
 	
+	addi $t1, $t1, 1
+	
 NEW_ROW: 
 	# reset column traversed count
 	li $t4, 0
@@ -117,17 +122,18 @@ NEW_ROW:
 	
 	beq $t5, $a3, END_DRAW_RECT
 	
-	jal DRAW_RECT_WHILE
+	j DRAW_RECT_WHILE
 		
 main:
 	# We want a draw rectangle function 
 	# Its paramters will be $a0 -> colour code, $a1 -> num column, $a2 -> num row, $a3 -> offset
 	li $a0, 0x00ff00 # store the green colour code
-	li $a1, 4
+	li $a1, 2
 	li $a2, 2
 	li $a3, 28
 	# set offset of displayAddress
 	add $t0, $t0, $a3
+	
 	jal DRAW_RECT
 	
 

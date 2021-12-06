@@ -26,10 +26,37 @@
 .data
 	x: .word 14
 	y: .word 20
-	vehicle_row: .space 256
+	cars_row_1: .space 4
+	cars_row_2: .space 4
+	cars_row_3: .space 4
+	cars_row_3_timer: .space 4
 displayAddress: .word 0x10008000
 .text
+
+# For the first row the distance between first car and second car is 40
+li $s3, 2560
+#2nd is 44
+li $s4, 2980
+# for the third the offset is 60
+li $s5, 3328
+
+sw $s3, cars_row_1($zero)
+sw $s4, cars_row_2($zero)
+sw $s5, cars_row_3($zero)
+
+sw $zero, cars_row_3_timer($zero)
+
+# For the second row the distance between first car and second car is 
+
 lw $t0, displayAddress # $t0 stores the base address for display
+# Store frog position
+li $t4, 3896
+
+
+# Register t1 is a counter variable for the current column
+# Register t2 is a counter variable for the current row
+li $t1, 0
+li $t2, 1
 
 j main
 
@@ -91,29 +118,41 @@ NEW_ROW:
 	# Call DRAW_RECT
 	j DRAW_RECT
 
-
 END_DRAW_RECT:
 	# reset the counters
 	li $t1, 0 
-	li $t2, 0
+	li $t2, 1
 	
 	# reset the display address to its base address
 	lw $t0, displayAddress
 	jr $ra
 	
-main:
-	# Call DRAW_RECT
-	# Usage:
-	# $a0 -> colour code
-	# $a1 -> # of columns (horizontal distance)
-	# $a2 -> # of rows (vertical distance)
-	# $a3 -> pixel offset value
 	
-	# Register t1 is a counter variable for the current column
-	# Register t2 is a counter variable for the current row
-	li $t1, 0
-	li $t2, 1
+keyboard_input:
+	lw $t5, 0xffff0004
+	beq $t5, 0x77, respond_to_w
+	beq $t5, 0x61, respond_to_a
+	beq $t5, 0x73, respond_to_s
+	beq $t5, 0x64, respond_to_d
+	jr $ra
 	
+respond_to_a:
+	addi $t4, $t4, -8
+	jr $ra
+
+respond_to_d:
+	addi $t4, $t4, 8
+	jr $ra
+	
+respond_to_w:
+	addi $t4, $t4, -256
+	jr $ra
+	
+respond_to_s:
+	addi $t4, $t4, 256
+	jr $ra
+
+draw_end_zone:
 	# Let's draw a green rectangle for the safe zone
 	# Setting our variables based on the specifications above
 	li $a0, 0x006400
@@ -124,7 +163,180 @@ main:
 	# Shift Offset
 	add $t0, $t0, $a3
 	
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
 	jal DRAW_RECT
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	
+	jr $ra
+
+draw_car_row_1:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	li $a0, 0xFF0000
+	li $a1, 1
+	li $a2, 1
+	lw $a3, cars_row_1($zero)
+	add $t0, $t0, $a3
+	jal DRAW_RECT 
+	
+	addi $a3, $a3, 80
+	
+	li $a0, 0xFF0000
+	li $a1, 1
+	li $a2, 1
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	
+	
+	# we are going to shift the coordinates
+	lw $a3, cars_row_1($zero)
+	addi $a3, $a3, -4
+	jal check_wrap_car_r1
+	
+	#addi $a3, $a3, 4
+	# store the relevant offset 
+	sw $a3, cars_row_1($zero)
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
+check_wrap_car_r1:
+	#check to see if we need to wrap around. let t6 = a3 and check whether t6 % 124 == 0
+	add $t6, $zero, $a3
+	li $t7, 128
+	div $t6, $t7
+	mfhi $t6
+	beq $t6, 124, wrap_car_r1
+	jr $ra
+	
+wrap_car_r1:
+	addi $a3, $a3, 128
+	jr $ra
+
+# draw car row 2
+draw_car_row_2:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	li $a0, 0xFF0000
+	li $a1, 1
+	li $a2, 1
+	lw $a3, cars_row_2($zero)
+	add $t0, $t0, $a3
+	jal DRAW_RECT 
+	
+	addi $a3, $a3, 44
+	
+	li $a0, 0xFF0000
+	li $a1, 1
+	li $a2, 1
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# we are going to shift the coordinates
+	lw $a3, cars_row_2($zero)
+	addi $a3, $a3, 4
+	jal check_wrap_car_r2
+	
+	#addi $a3, $a3, 4
+	# store the relevant offset 
+	sw $a3, cars_row_2($zero)
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
+check_wrap_car_r2:
+	#check to see if we need to wrap around. let t6 = a3 and check whether t6 % 124 == 0
+	add $t6, $zero, $a3
+	li $t7, 128
+	div $t6, $t7
+	mfhi $t6
+	beq $t6, 124, wrap_car_r2
+	jr $ra
+	
+wrap_car_r2:
+	addi $a3, $a3, -128
+	jr $ra
+
+# draw cars on row 3
+draw_car_row_3:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	li $a0, 0xFF0000
+	li $a1, 1
+	li $a2, 1
+	lw $a3, cars_row_3($zero)
+	add $t0, $t0, $a3
+	jal DRAW_RECT 
+	
+	addi $a3, $a3, 44
+	
+	li $a0, 0xFF0000
+	li $a1, 1
+	li $a2, 1
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# we are going to shift the coordinates
+	lw $a3, cars_row_3($zero)
+	addi $a3, $a3, -4
+	jal check_wrap_car_r3
+	
+	#addi $a3, $a3, 4
+	# store the relevant offset 
+	sw $a3, cars_row_3($zero)
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	
+	# reset the counter
+	sw $zero, cars_row_3_timer
+	
+	jr $ra
+	
+check_wrap_car_r3:
+	#check to see if we need to wrap around. let t6 = a3 and check whether t6 % 124 == 0
+	add $t6, $zero, $a3
+	li $t7, 128
+	div $t6, $t7
+	mfhi $t6
+	beq $t6, 124, wrap_car_r3
+	jr $ra
+	
+wrap_car_r3:
+	addi $a3, $a3, 128
+	jr $ra
+
+main:
+	# Call DRAW_RECT
+	# Usage:
+	# $a0 -> colour code
+	# $a1 -> # of columns (horizontal distance)
+	# $a2 -> # of rows (vertical distance)
+	# $a3 -> pixel offset value
+	
+	# Let's draw a green rectangle for the end zone
+	jal draw_end_zone
 	
 	# Now let's draw the blue water
 	li $a0, 0x87CEEB
@@ -163,17 +375,6 @@ main:
 	li $a3, 3584
 	
 	# Shift offset
-	add $t0, $t0, $a3
-	jal DRAW_RECT
-	
-	# draw frog
-	# offset is 4x + y * 128
-	# x = 15, y = 29
-	# offset is 3764
-	li $a0, 0x90EE90
-	li $a1, 3
-	li $a2, 2
-	li $a3, 3896
 	add $t0, $t0, $a3
 	jal DRAW_RECT
 	
@@ -222,57 +423,56 @@ main:
 	add $t0, $t0, $a3
 	jal DRAW_RECT
 	
-	
-	# Each pixel is 4 bytes
-	# Vehicle row has 32 * 2 pixels so the space needed is 32 * 2 * 4 = 256 bytes
 	# Draw Cars First Row
-	li $a0, 0xFF0000
-	li $a1, 4
-	li $a2, 2
-	li $a3, 2560
-	add $t0, $t0, $a3
-	jal DRAW_RECT
-	
-	li $a0, 0xFF0000
-	li $a1, 4
-	li $a2, 2
-	li $a3, 2600
-	add $t0, $t0, $a3
-	jal DRAW_RECT
+	jal draw_car_row_1
 	
 	# Draw cars second row
-	li $a0, 0xFF0000
-	li $a1, 4
-	li $a2, 2
-	li $a3, 2980
-	add $t0, $t0, $a3
-	jal DRAW_RECT
-	
-	li $a0, 0xFF0000
-	li $a1, 4
-	li $a2, 2
-	li $a3, 3024
-	add $t0, $t0, $a3
-	jal DRAW_RECT
+	jal draw_car_row_2
 	
 	# Draw cars third row
-	li $a0, 0xFF0000
-	li $a1, 4
-	li $a2, 2
-	li $a3, 3328
-	add $t0, $t0, $a3
-	jal DRAW_RECT
 	
-	li $a0, 0xFF0000
-	li $a1, 4
-	li $a2, 2
-	li $a3, 3388
-	add $t0, $t0, $a3
-	jal DRAW_RECT
-	
+	# Save the value of $t8 onto the stack
+	addi $sp, $sp, -4
+	sw $t8, 0($sp)
 
+	# We're going to let t8 = car_row_3_timer[0]
+	# Then we'll increment car_row_3_timer[0] and perform a check
+	lw $t8, cars_row_3_timer($zero)
+	addi $t8, $t8, 1
+	
+	 	 	
+	beq $t8, 10, draw_car_row_3
+	
+	sw $t8, cars_row_3_timer($zero)
+	
+	
+	# restore the $t8 from the stack (pop)
+	lw $t8, 0($sp)
+	addi $sp, $sp, 4
+	
+	#jal draw_car_row_3
+	
+			
+	# draw frog
+	# offset is 4x + y * 128
+	# x = 15, y = 29
+	# offset is 3764
+	li $a0, 0x90ee90
+	li $a1, 2
+	li $a2, 1
+	#t4 stores the position of the frog
+	move $a3, $t4
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Keyboard input
+	lw $t8, 0xffff0000
+	beq $t8, 1, keyboard_input
+	
+	# ?
 	li $v0, 32
 	li $a0, 17
 	syscall
+	
 	j main
 
