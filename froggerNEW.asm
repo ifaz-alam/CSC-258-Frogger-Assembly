@@ -30,6 +30,11 @@
 	cars_row_2: .space 4
 	cars_row_3: .space 4
 	cars_row_3_timer: .space 4
+	LogsLeftGroup: .space 4
+	LogsRightGroup: .space 4
+	LogsMiddleLeft: .space 4
+	LogsMiddleRight: .space 4
+	
 displayAddress: .word 0x10008000
 .text
 
@@ -43,6 +48,35 @@ li $s5, 3328
 sw $s3, cars_row_1($zero)
 sw $s4, cars_row_2($zero)
 sw $s5, cars_row_3($zero)
+
+# Reassign the values
+# Frog life
+li $s5, 5
+# Frog score
+li $s6, 0
+
+# Log starting positions
+# LogLeftGroup - 896 and 1664
+# LogRightGroup - 956 and 1724
+li $s3, 896
+sw $s3, LogsLeftGroup($zero)
+li $s4, 956
+sw $s4, LogsRightGroup($zero)
+
+
+# Middle logs anchor points in order of first log, second log
+#1st log
+li $s3, 1300
+sw $s3, LogsMiddleLeft($zero)
+#2nd log
+li $s3, 1356
+sw $s3, LogsMiddleLeft($zero)
+
+
+# Set log frame count to 0. we will move the top and bottom row once every 20 frames
+li $s4, 20
+# The middle one will move faster, we will update it once every 10 frames
+li $s3, 10
 
 sw $zero, cars_row_3_timer($zero)
 
@@ -59,6 +93,254 @@ li $t1, 0
 li $t2, 1
 
 j main
+
+# check whether the grouped logs can move yet
+check_log_group_frames:
+	beq $s4, $zero, draw_logs_grouped_shift
+	bne $s4, $zero, draw_logs_grouped_still
+
+check_log_middle_frames:
+	beq $s3 $zero, draw_middle_logs_shift
+	bne $s3, $zero, draw_middle_logs_still
+
+draw_middle_logs_still:
+	# Draw middle left log
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	
+	# decrement log frame counter
+	addi $s3, $s3, -1
+	
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	lw $a3, LogsMiddleLeft($zero)
+	add $t0, $t0, $a3
+	jal DRAW_RECT 
+	
+	lw $a3, LogsMiddleRight($zero)
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+		
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
+
+draw_middle_logs_shift:
+	# middle left logs draw
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+
+	# reset log frame counter
+	li $s3, 20
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	lw $a3, LogsLeftGroup($zero)
+	add $t0, $t0, $a3
+	jal DRAW_RECT 
+	
+	lw $a3, LogsRightGroup($zero)
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# we are going to shift the coordinates
+	lw $a3, LogsLeftGroup($zero)
+	addi $a3, $a3, 4
+	jal check_wrap_log_right
+	
+	#addi $a3, $a3, 4
+	# store the relevant offset 
+	sw $a3, LogsLeftGroup($zero)
+	
+	# we are going to shift the coordinates
+	lw $a3, LogsRightGroup($zero)
+	addi $a3, $a3, 4
+	jal check_wrap_log_right
+	
+	#addi $a3, $a3, 4
+	# store the relevant offset 
+	sw $a3, LogsRightGroup($zero)
+	
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
+
+draw_logs_grouped_still:
+	# Draw the grouped ones on the left
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	
+	# decrement log frame counter
+	addi $s4, $s4, -1
+	
+	# Draw the grouped ones on the left
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	lw $a3, LogsLeftGroup($zero)
+	add $t0, $t0, $a3
+	jal DRAW_RECT 
+	
+	addi $a3, $a3, 768
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# Draw the grouped ones on the right
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	lw $a3, LogsRightGroup($zero)
+	add $t0, $t0, $a3
+	jal DRAW_RECT 
+	
+	addi $a3, $a3, 768
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+		
+				
+draw_logs_grouped_shift:
+	# Draw the grouped ones on the left
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	
+	# reset log frame counter
+	li $s4, 20
+	
+	# Draw the grouped ones on the left
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	lw $a3, LogsLeftGroup($zero)
+	add $t0, $t0, $a3
+	jal DRAW_RECT 
+	
+	addi $a3, $a3, 768
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# we are going to shift the coordinates
+	lw $a3, LogsLeftGroup($zero)
+	addi $a3, $a3, -4
+	jal check_wrap_log_left
+	
+	#addi $a3, $a3, 4
+	# store the relevant offset 
+	sw $a3, LogsLeftGroup($zero)
+	
+	# Draw the grouped ones on the right
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	lw $a3, LogsRightGroup($zero)
+	add $t0, $t0, $a3
+	jal DRAW_RECT 
+	
+	addi $a3, $a3, 768
+	
+	li $a0, 0x964B00
+	li $a1, 10
+	li $a2, 3
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# we are going to shift the coordinates
+	lw $a3, LogsRightGroup($zero)
+	addi $a3, $a3, -4
+	jal check_wrap_log_left
+	
+	#addi $a3, $a3, 4
+	# store the relevant offset 
+	sw $a3, LogsRightGroup($zero)
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
+check_wrap_log_left:
+	#check to see if we need to wrap around. let t6 = a3 and check whether t6 % 124 == 0
+	add $t6, $zero, $a3
+	li $t7, 128
+	div $t6, $t7
+	mfhi $t6
+	beq $t6, 124, wrap_log_left
+	jr $ra
+	
+wrap_log_left:
+	addi $a3, $a3, 128
+	jr $ra
+	
+check_wrap_log_right:
+	#check to see if we need to wrap around. let t6 = a3 and check whether t6 % 124 == 0
+	add $t6, $zero, $a3
+	li $t7, 128
+	div $t6, $t7
+	mfhi $t6
+	beq $t6, 0, wrap_log_right
+	jr $ra
+	
+wrap_log_right:
+	addi $a3, $a3, -128
+	jr $ra
+
+
 
 WRAP_AROUND:
 	addi $t0, $t0, -128
@@ -324,7 +606,60 @@ check_wrap_car_r3:
 wrap_car_r3:
 	addi $a3, $a3, 128
 	jr $ra
+	
 
+car_collision:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	# stack store $t7 value from main
+	addi $sp, $sp, -4
+	# push the current $t7 onto the stack
+	sw $ra, 0($sp)
+	
+	lw $t7, cars_row_1($zero)
+	
+	beq $t4, $t7, frog_death
+	addi $t7, $t7, 40
+	beq $t4, $t7, frog_death
+	addi $t7, $t7, -40
+	addi $t7, $t7, 420
+	beq $t4, $t7, frog_death
+	addi $t7, $t7, 44
+	beq $t4, $t7, frog_death
+	lw $t7, cars_row_1($zero)
+	addi $t7, $t7, 768
+	beq $t4, $t7, frog_death
+	addi $t7, $t7, 60
+	beq $t4, $t7, frog_death
+	
+	# restore the $t7 from the stack
+	lw $t7, 0($sp)
+	addi $sp, $sp, 4
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
+frog_death:
+	li $t4, 3896
+
+	# restore the $t7 from the stack
+	lw $t7, 0($sp)
+	addi $sp, $sp, 4
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	
+	addi $s5, $s5, -1
+	beq $s5, $zero, game_over
+	jr $ra
+game_over:
+	syscall
 main:
 	# Call DRAW_RECT
 	# Usage:
@@ -375,6 +710,9 @@ main:
 	# Shift offset
 	add $t0, $t0, $a3
 	jal DRAW_RECT
+	
+	jal check_log_group_frames
+	jal check_log_middle_frames
 	
 	# Draw logs first row
 	li $a0, 0x964B00
@@ -433,7 +771,6 @@ main:
 			
 	# draw frog
 	# offset is 4x + y * 128
-	# x = 15, y = 29
 	# offset is 3764
 	li $a0, 0x90ee90
 	li $a1, 2
@@ -443,10 +780,11 @@ main:
 	add $t0, $t0, $a3
 	jal DRAW_RECT
 	
+	
 	# Keyboard input
 	lw $t8, 0xffff0000
 	beq $t8, 1, keyboard_input
-	
+	jal car_collision
 	# ?
 	li $v0, 32
 	li $a0, 17
