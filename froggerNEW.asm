@@ -34,6 +34,7 @@
 	LogsRightGroup: .space 4
 	LogsMiddleLeft: .space 4
 	LogsMiddleRight: .space 4
+	nl: .asciiz "\n"
 	
 displayAddress: .word 0x10008000
 .text
@@ -51,7 +52,7 @@ sw $s5, cars_row_3($zero)
 
 # Reassign the values
 # Frog life
-li $s5, 5
+li $s5, 3
 # Frog score
 li $s6, 0
 
@@ -70,13 +71,13 @@ li $s3, 1300
 sw $s3, LogsMiddleLeft($zero)
 #2nd log
 li $s3, 1356
-sw $s3, LogsMiddleLeft($zero)
+sw $s3, LogsMiddleRight($zero)
 
 
 # Set log frame count to 0. we will move the top and bottom row once every 20 frames
 li $s4, 20
-# The middle one will move faster, we will update it once every 10 frames
-li $s3, 10
+# The middle one will move faster, we will update it once every 5 frames
+li $s3, 5
 
 sw $zero, cars_row_3_timer($zero)
 
@@ -105,11 +106,6 @@ check_log_middle_frames:
 
 draw_middle_logs_still:
 	# Draw middle left log
-	# stack store $rs value from main
-	addi $sp, $sp, -4
-	# push the current $ra onto the stack
-	sw $ra, 0($sp)
-	
 	
 	# decrement log frame counter
 	addi $s3, $s3, -1
@@ -127,7 +123,6 @@ draw_middle_logs_still:
 	jal DRAW_RECT 
 	
 	lw $a3, LogsMiddleRight($zero)
-	
 	li $a0, 0x964B00
 	li $a1, 10
 	li $a2, 3
@@ -148,16 +143,16 @@ draw_middle_logs_shift:
 	sw $ra, 0($sp)
 
 	# reset log frame counter
-	li $s3, 20
+	li $s3, 5
 	
 	li $a0, 0x964B00
 	li $a1, 10
 	li $a2, 3
-	lw $a3, LogsLeftGroup($zero)
+	lw $a3, LogsMiddleLeft($zero)
 	add $t0, $t0, $a3
 	jal DRAW_RECT 
 	
-	lw $a3, LogsRightGroup($zero)
+	lw $a3, LogsMiddleRight($zero)
 	li $a0, 0x964B00
 	li $a1, 10
 	li $a2, 3
@@ -165,22 +160,22 @@ draw_middle_logs_shift:
 	jal DRAW_RECT
 	
 	# we are going to shift the coordinates
-	lw $a3, LogsLeftGroup($zero)
+	lw $a3, LogsMiddleLeft($zero)
 	addi $a3, $a3, 4
 	jal check_wrap_log_right
 	
 	#addi $a3, $a3, 4
 	# store the relevant offset 
-	sw $a3, LogsLeftGroup($zero)
+	sw $a3, LogsMiddleLeft($zero)
 	
 	# we are going to shift the coordinates
-	lw $a3, LogsRightGroup($zero)
+	lw $a3, LogsMiddleRight($zero)
 	addi $a3, $a3, 4
 	jal check_wrap_log_right
 	
 	#addi $a3, $a3, 4
 	# store the relevant offset 
-	sw $a3, LogsRightGroup($zero)
+	sw $a3, LogsMiddleRight($zero)
 	
 	
 	# restore the $ra from the stack
@@ -418,20 +413,85 @@ keyboard_input:
 	beq $t5, 0x64, respond_to_d
 	jr $ra
 	
-respond_to_a:
-	addi $t4, $t4, -4
+increase_score:
+	# Draw the grouped ones on the left
+	# stack store $a0 value from main
+	addi $sp, $sp, -4
+	# push the current $a0 onto the stack
+	sw $a0, 0($sp)
+	
+	addi $s6, $s6, 1
+	
+	# load frog score and print it
+	li $v0, 1
+	add $a0, $zero, $s6
+	syscall
+	
+	#Load new line character
+	li $v0, 4
+	la $a0, nl
+	syscall
+	
+	# restore the $a0 from the stack
+	lw $a0, 0($sp)
+	addi $sp, $sp, 4
 	jr $ra
+	
+	
+respond_to_a:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+
+	jal increase_score
+	addi $t4, $t4, -4
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
 
 respond_to_d:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+
+	jal increase_score
 	addi $t4, $t4, 4
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
 	jr $ra
 	
 respond_to_w:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+
+	jal increase_score
 	addi $t4, $t4, -128
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
 	jr $ra
 	
 respond_to_s:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+
 	addi $t4, $t4, 128
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
 	jr $ra
 
 draw_end_zone:
@@ -478,14 +538,11 @@ draw_car_row_1:
 	add $t0, $t0, $a3
 	jal DRAW_RECT
 	
-	
-	
 	# we are going to shift the coordinates
 	lw $a3, cars_row_1($zero)
 	addi $a3, $a3, -4
 	jal check_wrap_car_r1
 	
-	#addi $a3, $a3, 4
 	# store the relevant offset 
 	sw $a3, cars_row_1($zero)
 	
@@ -617,7 +674,7 @@ car_collision:
 	# stack store $t7 value from main
 	addi $sp, $sp, -4
 	# push the current $t7 onto the stack
-	sw $ra, 0($sp)
+	sw $t7, 0($sp)
 	
 	lw $t7, cars_row_1($zero)
 	
@@ -645,8 +702,9 @@ car_collision:
 	jr $ra
 	
 frog_death:
+        # reset frog position
 	li $t4, 3896
-
+	
 	# restore the $t7 from the stack
 	lw $t7, 0($sp)
 	addi $sp, $sp, 4
@@ -657,10 +715,80 @@ frog_death:
 	
 	addi $s5, $s5, -1
 	beq $s5, $zero, game_over
+	
 	jr $ra
+
 game_over:
-	syscall
+	li $a0, 0xFF0000
+	li $a1, 32
+	li $a2, 32
+	li $a3, 0
+	
+	# Shift offset
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+
+game_success:
+	li $a0, 0x009933
+	li $a1, 32
+	li $a2, 32
+	li $a3, 0
+	
+	# Shift offset
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+
+			
+draw_goal_1:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+
+	li $a0, 0x00008B
+	li $a1, 2
+	li $a2, 1
+	li $a3, 8
+	
+	# Shift offset
+	add $t0, $t0, $a3
+	jal DRAW_RECT
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	
+	jr $ra
+
+goal_1_collision:
+	# stack store $rs value from main
+	addi $sp, $sp, -4
+	# push the current $ra onto the stack
+	sw $ra, 0($sp)
+	
+	# stack store $t7 value from main
+	addi $sp, $sp, -4
+	# push the current $t7 onto the stack
+	sw $t7, 0($sp)
+	
+	li $t7, 8
+	
+	# check if reach goal
+	beq $t4, $t7, game_success
+	
+	# restore the $t7 from the stack
+	lw $t7, 0($sp)
+	addi $sp, $sp, 4
+	
+	# restore the $ra from the stack
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+
+	
+
 main:
+	
 	# Call DRAW_RECT
 	# Usage:
 	# $a0 -> colour code
@@ -670,6 +798,9 @@ main:
 	
 	# Let's draw a green rectangle for the end zone
 	jal draw_end_zone
+	
+	# Draw goal region
+	jal draw_goal_1
 	
 	# Now let's draw the blue water
 	li $a0, 0x87CEEB
@@ -720,14 +851,14 @@ main:
 	li $a2, 3
 	li $a3, 896
 	add $t0, $t0, $a3
-	jal DRAW_RECT
+	#jal DRAW_RECT
 	
 	li $a0, 0x964B00
 	li $a1, 10
 	li $a2, 3
 	li $a3, 956
 	add $t0, $t0, $a3
-	jal DRAW_RECT
+	#jal DRAW_RECT
 	
 	# Draw logs second row
 	li $a0, 0x964B00
@@ -735,14 +866,14 @@ main:
 	li $a2, 3
 	li $a3, 1300
 	add $t0, $t0, $a3
-	jal DRAW_RECT
+	#jal DRAW_RECT
 	
 	li $a0, 0x964B00
 	li $a1, 10
 	li $a2, 3
 	li $a3, 1356
 	add $t0, $t0, $a3
-	jal DRAW_RECT
+	#jal DRAW_RECT
 	
 	# Draw logs third row
 	li $a0, 0x964B00
@@ -750,14 +881,14 @@ main:
 	li $a2, 3
 	li $a3, 1664
 	add $t0, $t0, $a3
-	jal DRAW_RECT
+	#jal DRAW_RECT
 	
 	li $a0, 0x964B00
 	li $a1, 10
 	li $a2, 3
 	li $a3, 1724
 	add $t0, $t0, $a3
-	jal DRAW_RECT
+	#jal DRAW_RECT
 	
 	# Draw Cars First Row
 	jal draw_car_row_1
@@ -785,7 +916,9 @@ main:
 	lw $t8, 0xffff0000
 	beq $t8, 1, keyboard_input
 	jal car_collision
-	# ?
+	jal goal_1_collision
+	
+	# Refresh 60 times a second
 	li $v0, 32
 	li $a0, 17
 	syscall
